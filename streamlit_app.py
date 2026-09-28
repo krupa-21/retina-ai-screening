@@ -1,4 +1,3 @@
-
 import streamlit as st
 import torch
 import timm
@@ -143,20 +142,32 @@ def analyze_image(image, model):
 
 st.set_page_config(
     page_title="Retina AI Screening",
-    page_icon="🩺",
-    layout="wide"
+    page_icon=None,
+    layout="wide",
+    initial_sidebar_state="collapsed"
 )
 
 
-st.title("🩺 Retina AI Screening")
-
-st.subheader(
-    "Explainable AI for Diabetic Retinopathy Screening"
-)
+st.title("Retina AI Screening")
 
 st.write(
-    "Upload a retinal fundus image to receive an "
-    "AI-assisted screening result and Grad-CAM explanation."
+    "Explainable AI for diabetic retinopathy screening"
+)
+
+st.caption(
+    "AI-assisted analysis of retinal fundus images "
+    "with confidence analysis and Grad-CAM explanations."
+)
+
+
+st.divider()
+
+
+st.subheader("Upload retinal image")
+
+uploaded_file = st.file_uploader(
+    "Choose a retinal fundus image",
+    type=["png", "jpg", "jpeg"]
 )
 
 
@@ -173,74 +184,191 @@ except Exception as e:
     st.stop()
 
 
-uploaded_file = st.file_uploader(
-    "Upload Retinal Fundus Image",
-    type=["png", "jpg", "jpeg"]
-)
-
-
 if uploaded_file is not None:
 
     image = Image.open(
         uploaded_file
     ).convert("RGB")
 
-    st.image(
-        image,
-        caption="Uploaded Retinal Image",
-        use_container_width=True
+    st.divider()
+
+    st.subheader("Screening analysis")
+
+    image_column, analysis_column = st.columns(
+        [1, 1],
+        gap="large"
     )
 
-    if st.button(
-        "Analyze Image",
-        type="primary"
-    ):
+    with image_column:
 
-        with st.spinner(
-            "Analyzing retinal image..."
-        ):
+        st.write("**Retinal fundus image**")
 
-            prediction, confidence, probabilities, heatmap = (
-                analyze_image(
+        st.image(
+            image,
+            use_container_width=True
+        )
+
+    with analysis_column:
+
+        st.write("**AI screening result**")
+
+        analyze_button = st.button(
+            "Analyze image",
+            type="primary",
+            use_container_width=True
+        )
+
+        if analyze_button:
+
+            with st.spinner(
+                "Analyzing retinal image..."
+            ):
+
+                (
+                    prediction,
+                    confidence,
+                    probabilities,
+                    heatmap
+                ) = analyze_image(
                     image,
                     model
                 )
+
+            st.success(
+                f"Predicted stage: {prediction}"
             )
 
-        st.success(
-            f"Prediction: {prediction}"
+            st.metric(
+                label="Model confidence",
+                value=f"{confidence:.2f}%"
+            )
+
+            st.progress(
+                min(confidence / 100, 1.0)
+            )
+
+            st.write(
+                "Confidence for the predicted class"
+            )
+
+    if analyze_button:
+
+        st.divider()
+
+        st.subheader("Prediction probabilities")
+
+        probability_column, table_column = st.columns(
+            [1.2, 0.8],
+            gap="large"
         )
 
-        st.metric(
-            "Confidence",
-            f"{confidence:.2f}%"
+        with probability_column:
+
+            chart_data = probabilities.copy()
+
+            chart_data = chart_data.set_index(
+                "Class"
+            )
+
+            st.bar_chart(
+                chart_data["Probability (%)"]
+            )
+
+        with table_column:
+
+            st.dataframe(
+                probabilities,
+                use_container_width=True,
+                hide_index=True
+            )
+
+
+        st.divider()
+
+        st.subheader("Explainable AI")
+
+        st.write(
+            "Grad-CAM highlights regions of the retinal "
+            "image that contributed to the model prediction."
         )
 
-        st.subheader(
-            "Class Probabilities"
+        original_column, heatmap_column = st.columns(
+            2,
+            gap="large"
         )
 
-        st.dataframe(
-            probabilities,
-            use_container_width=True,
-            hide_index=True
-        )
+        with original_column:
 
-        st.subheader(
-            "Grad-CAM Explanation"
-        )
+            st.write("**Original image**")
 
-        st.image(
-            heatmap,
-            caption="Regions influencing the model prediction",
-            use_container_width=True
+            st.image(
+                image,
+                use_container_width=True
+            )
+
+        with heatmap_column:
+
+            st.write("**Grad-CAM explanation**")
+
+            st.image(
+                heatmap,
+                use_container_width=True
+            )
+
+        st.info(
+            "The Grad-CAM visualization explains model "
+            "attention and should not be interpreted as "
+            "a clinical diagnosis."
         )
 
 
 st.divider()
 
-st.caption(
-    "This is an AI-assisted screening prototype "
-    "and not a medical diagnosis. Results should be "
-    "reviewed by a qualified healthcare professional."
+st.subheader("About the system")
+
+about_column, limitation_column = st.columns(
+    2,
+    gap="large"
+)
+
+with about_column:
+
+    st.write("**Model**")
+
+    st.write(
+        "EfficientNet-B0 image classification model."
+    )
+
+    st.write("**Classification categories**")
+
+    st.write(
+        "No DR, Mild, Moderate, Severe, "
+        "and Proliferative DR."
+    )
+
+
+with limitation_column:
+
+    st.write("**Limitations**")
+
+    st.write(
+        "Predictions may be affected by image quality, "
+        "dataset limitations, acquisition conditions, "
+        "and differences between training and real-world images."
+    )
+
+    st.write("**Intended use**")
+
+    st.write(
+        "Research, education, and AI-assisted "
+        "screening demonstration."
+    )
+
+
+st.divider()
+
+st.warning(
+    "Medical disclaimer: This is an AI-assisted screening "
+    "prototype and not a medical diagnosis. Results should "
+    "be reviewed by a qualified healthcare professional."
 )
