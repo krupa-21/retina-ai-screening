@@ -6,3 +6,5 @@ grad-cam==1.5.7
 numpy
 pandas
 Pillow
+opencv-python-headless
+reportlab
