@@ -110,7 +110,8 @@ The application provides a browser-based Streamlit interface without requiring u
 
 ### Public Deployment
 
-The application is deployed through **Streamlit Community Cloud** and is accessible through a web browser.
+The application is deployed through **Streamlit Community Cloud** and is accessible through a web browser
+
 
 ---
 
